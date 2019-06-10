@@ -1,0 +1,64 @@
+rm(list=ls())
+#load(file="thirds.RData")
+library(foreign)
+library(GB2)
+library(ineq)
+library(xtable)
+scripts_dir <- "/home/mathias/Documents/AMSE/Tesis/mscthesis/Ideas and scraps/scrap notes/scrap notes 3"
+LM_data_dir <- "/home/mathias/Documents/AMSE/Tesis/mscthesis/Ideas and scraps/scrap notes/scrap notes 4"
+trunc_data_dir <- "/home/mathias/Documents/AMSE/Tesis/mscthesis/Ideas and scraps/scrap notes/scrap notes 4/truncations/Data"
+document_dir <- "/home/mathias/Documents/AMSE/Tesis/mscthesis/Document/Tables"
+#scripts_dir <- "/home/mathias/Documents/Maestria/AMSE M2/tesis/mscthesis/Ideas and scraps/scrap notes/scrap notes 3"
+#LM_data_dir <- "/home/mathias/Documents/Maestria/AMSE M2/tesis/mscthesis/Ideas and scraps/scrap notes/scrap notes 4"
+#trunc_data_dir <- "/home/mathias/Documents/Maestria/AMSE M2/tesis/mscthesis/Ideas and scraps/scrap notes/scrap notes 4/truncations/Data"
+setwd(LM_data_dir)
+source(file=paste(scripts_dir,"decile.means.r",sep="/"))
+source(file=paste(scripts_dir,"ptile.means.r",sep="/"))
+source(file=paste(scripts_dir,"gb2.glc.r",sep="/"))
+source(file=paste(scripts_dir,"nlst.gb2.r",sep="/"))
+source(file=paste(scripts_dir,"country.est.r",sep="/"))
+source(file=paste(scripts_dir,"MI.ests.r",sep="/"))
+source(file=paste(scripts_dir,"countries.MI.est.r",sep="/"))
+source(file=paste(scripts_dir,"GID.MI.est.r",sep="/"))
+data <- read.dta("LM_WPID_web_2.dta")
+data_labels=attr(data,"var.labels")
+data <- data[order(data$contcod,data$year,data$group),]
+
+#Truncation points
+source(file=paste(LM_data_dir,"/truncations/Truncation point.r",sep=""))
+trunc_points <- read.csv(file=paste(LM_data_dir,"/truncations.csv",sep=""))
+colnames(trunc_points) <- c("row","country","t93","t08")
+trunc_points$country <- as.character(trunc_points$country)
+trunc_points[which(trunc_points$country%in%data$country==FALSE),"country"] <- c("Korea, Rep.","Venezuela, RB","Egypt, Arab Rep.","Cote d'Ivoire")
+trunc_points$contcod <- data$contcod[match(trunc_points$country,data$country)]
+
+#WDI Ginis and top 10% share for full data comparison
+wdi <- read.csv("WDI gini.csv",na.strings="..")
+wdi_ginis <- wdi[which(wdi$Series.Code=="SI.POV.GINI"),3:ncol(wdi)]
+wdi_top10 <- wdi[which(wdi$Series.Code=="SI.DST.10TH.10"),3:ncol(wdi)]
+colnames(wdi_ginis) <- c("country","contcod",seq(1990,1996,1),seq(2000,2018,1))
+colnames(wdi_top10) <- c("country","contcod",seq(1990,1996,1),seq(2000,2018,1))
+wdi_ginis$ref93 <- apply(wdi_ginis[,c("1991","1992","1993","1994","1995")],1,mean,na.rm=TRUE)
+wdi_ginis$ref08 <- apply(wdi_ginis[,c("2006","2007","2008","2009","2010")],1,mean,na.rm=TRUE)
+wdi_top10$ref93 <- apply(wdi_top10[,c("1991","1992","1993","1994","1995")],1,mean,na.rm=TRUE)
+wdi_top10$ref08 <- apply(wdi_top10[,c("2006","2007","2008","2009","2010")],1,mean,na.rm=TRUE)
+
+#Correct missing 1st decile mean (using given population mean income)
+data[is.na(data$RRinc),"RRinc"] <- (data[data$contcod=="CHE" & data$bin_year==2008,"RRmean"][1]*sum(data[data$contcod=="CHE" & data$bin_year==2008,"pop"])-sum(data[data$contcod=="CHE" & data$bin_year==2008,"pop"]*data[data$contcod=="CHE" & data$bin_year==2008,"RRinc"],na.rm=T))/sum(data[data$contcod=="CHE" & data$bin_year==2008,"pop"])
+
+#Country identifier (no disaggregation for rural/urban china, india, and indonesia)
+data$mysample2 <- rep(0,nrow(data))
+data$mysample2[which(data$contcod%in%c("CHN-U","CHN-R","IDN-U","IDN-R","IND-U","IND-R")==FALSE)] <- data$mysample[which(data$contcod%in%c("CHN-U","CHN-R","IDN-U","IDN-R","IND-U","IND-R")==FALSE)]
+data$mysample2[data$mysample==0] <- rep(1,length(data$mysample2[data$mysample==0]))
+
+#######Country-year coverage table
+aux1 <- unique(data[data$mysample2==1,c("contcod","region","bin_year")])
+r1 <- c(length(aux1[aux1$bin_year==1988,"contcod"]),sum(aux1[aux1$bin_year==1988,"contcod"]%in%aux1[aux1$bin_year==1993,"contcod"]),sum(aux1[aux1$bin_year==1988,"contcod"]%in%aux1[aux1$bin_year==1998,"contcod"]),sum(aux1[aux1$bin_year==1988,"contcod"]%in%aux1[aux1$bin_year==2003,"contcod"]),sum(aux1[aux1$bin_year==1988,"contcod"]%in%aux1[aux1$bin_year==2008,"contcod"]))
+r2 <- c(sum(aux1[aux1$bin_year==1993,"contcod"]%in%aux1[aux1$bin_year==1988,"contcod"]),length(aux1[aux1$bin_year==1993,"contcod"]),sum(aux1[aux1$bin_year==1993,"contcod"]%in%aux1[aux1$bin_year==1998,"contcod"]),sum(aux1[aux1$bin_year==1993,"contcod"]%in%aux1[aux1$bin_year==2003,"contcod"]),sum(aux1[aux1$bin_year==1993,"contcod"]%in%aux1[aux1$bin_year==2008,"contcod"]))
+r3 <- c(sum(aux1[aux1$bin_year==1998,"contcod"]%in%aux1[aux1$bin_year==1988,"contcod"]),sum(aux1[aux1$bin_year==1998,"contcod"]%in%aux1[aux1$bin_year==1993,"contcod"]),length(aux1[aux1$bin_year==1998,"contcod"]),sum(aux1[aux1$bin_year==1998,"contcod"]%in%aux1[aux1$bin_year==2003,"contcod"]),sum(aux1[aux1$bin_year==1998,"contcod"]%in%aux1[aux1$bin_year==2008,"contcod"]))
+r4 <- c(sum(aux1[aux1$bin_year==2003,"contcod"]%in%aux1[aux1$bin_year==1988,"contcod"]),sum(aux1[aux1$bin_year==2003,"contcod"]%in%aux1[aux1$bin_year==1993,"contcod"]),sum(aux1[aux1$bin_year==2003,"contcod"]%in%aux1[aux1$bin_year==1998,"contcod"]),length(aux1[aux1$bin_year==2003,"contcod"]),sum(aux1[aux1$bin_year==2003,"contcod"]%in%aux1[aux1$bin_year==2008,"contcod"]))
+r5 <- c(sum(aux1[aux1$bin_year==2008,"contcod"]%in%aux1[aux1$bin_year==1988,"contcod"]),sum(aux1[aux1$bin_year==2008,"contcod"]%in%aux1[aux1$bin_year==1993,"contcod"]),sum(aux1[aux1$bin_year==2008,"contcod"]%in%aux1[aux1$bin_year==1998,"contcod"]),sum(aux1[aux1$bin_year==2008,"contcod"]%in%aux1[aux1$bin_year==2003,"contcod"]),length(aux1[aux1$bin_year==2008,"contcod"]))
+tab <- rbind(r1,r2,r3,r4,r5)
+colnames(tab) <- c(1988,1993,1998,2003,2008)
+rownames(tab) <- colnames(tab)
+print(xtable(tab,caption="Country coverage by years in LM-WPID",label="ctycvge"),file=paste(document_dir,"/ctycvge.tex",sep=""))

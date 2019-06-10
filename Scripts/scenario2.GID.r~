@@ -1,0 +1,11 @@
+N.CHN93 <- unique((data$totpop[which(data$contcod%in%cnts9308 & data$bin_year==1993)]/data$totpop[which(data$contcod%in%cnts9308 & data$contcod=="CHN" & data$bin_year==1993)][1]))*88000
+N.CHN08 <- unique((data$totpop[which(data$contcod%in%cnts9308 & data$bin_year==2008)]/data$totpop[which(data$contcod%in%cnts9308 & data$contcod=="CHN" & data$bin_year==2008)][1]))*80000
+
+M=100
+
+
+
+GID93.t1 <- GID.MI.est(cnts=cnts9308,year=1993,t=1,M=M,N=round(N.CHN93),gid_samplesonly=TRUE)
+write.table(GID93.t1,file=paste(output_data_dir,"GID93.t1.txt",sep=""),row.names=FALSE)
+rm(GID93.t1)
+gc()

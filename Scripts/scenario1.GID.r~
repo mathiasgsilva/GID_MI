@@ -1,0 +1,2 @@
+N.CHN93 <- unique((data$totpop[which(data$contcod%in%cnts9308 & data$bin_year==1993)]/data$totpop[which(data$contcod%in%cnts9308 & data$contcod=="CHN" & data$bin_year==1993)][1]))*88000
+N.CHN08 <- unique((data$totpop[which(data$contcod%in%cnts9308 & data$bin_year==2008)]/data$totpop[which(data$contcod%in%cnts9308 & data$contcod=="CHN" & data$bin_year==2008)][1]))*80000
